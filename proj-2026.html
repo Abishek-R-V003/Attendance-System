@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Management Suite</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600;700&display=swap');
+        
+        :root {
+            --w3-blue: #2196F3;
+            --w3-dark: #282A35;
+            --w3-gray: #f1f1f1;
+        }
+
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #ffffff; color: #333; }
+        
+        .login-screen { background: var(--w3-dark); }
+        .sidebar { background-color: var(--w3-gray); min-height: 100vh; }
+        .sidebar-btn { padding: 12px 16px; width: 100%; text-align: left; border: none; display: block; font-size: 17px; }
+        .sidebar-btn:hover { background-color: #ccc; }
+        .active-tab { background-color: var(--w3-blue) !important; color: white !important; }
+        
+        .card { border: 1px solid #ddd; border-radius: 4px; padding: 16px; margin-bottom: 16px; }
+        .w3-btn { background-color: #04AA6D; color: white; padding: 10px 20px; border: none; cursor: pointer; border-radius: 4px; font-weight: 600; }
+        .w3-btn:hover { background-color: #059862; }
+        .w3-btn-red { background-color: #f44336; }
+        .w3-btn-red:hover { background-color: #da190b; }
+        
+        .admin-only { display: none; }
+        .is-admin .admin-only { display: block !important; }
+        .is-admin .admin-inline { display: inline-block !important; }
+        
+        table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        th { background-color: var(--w3-dark); color: white; }
+
+        #app-interface { display: none; }
+    </style>
+</head>
+<body>
+
+    <!-- LOGIN SCREEN -->
+    <div id="login-screen" class="login-screen fixed inset-0 z-[1000] flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-lg shadow-2xl w-full max-w-md">
+            <div class="text-center mb-8">
+                <div class="bg-blue-600 w-16 h-16 rounded-full flex items-center justify-center text-white mx-auto mb-4">
+                    <i class="fas fa-university text-3xl"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-gray-800">Institution Login</h1>
+                <p class="text-gray-500 text-sm">Please enter your access password</p>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold mb-1">Access Code</label>
+                    <input type="password" id="passInput" class="w-full border p-3 rounded focus:ring-2 focus:ring-blue-500 outline-none" placeholder="••••••••">
+                </div>
+                <button onclick="attemptLogin()" class="w-full bg-black text-white py-3 rounded font-bold hover:bg-gray-800 transition-all">
+                    Unlock System
+                </button>
+                <p id="loginError" class="text-red-500 text-sm text-center hidden">Invalid Password. Access Denied.</p>
+            </div>
+            
+            <div class="mt-8 pt-6 border-t text-center text-xs text-gray-400">
+                Authorized Personnel Only • Secure 256-bit Encryption
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP INTERFACE -->
+    <div id="app-interface" class="flex flex-col md:flex-row">
+        
+        <!-- Navigation -->
+        <nav class="sidebar w-full md:w-64 border-r">
+            <div class="p-6 border-b bg-white">
+                <h2 class="font-bold text-xl text-blue-600"><i class="fas fa-graduation-cap"></i> EduFlow Pro</h2>
+                <div id="userBadge" class="mt-2 inline-block px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider"></div>
+            </div>
+            
+            <div class="mt-4">
+                <button onclick="showPage('dash')" id="btn-dash" class="sidebar-btn active-tab"><i class="fas fa-home w-8"></i> Dashboard</button>
+                <button onclick="showPage('stud')" id="btn-stud" class="sidebar-btn"><i class="fas fa-user-graduate w-8"></i> Students</button>
+                <button onclick="showPage('staf')" id="btn-staf" class="sidebar-btn"><i class="fas fa-user-tie w-8"></i> Staff Members</button>
+                <button onclick="showPage('attn')" id="btn-attn" class="sidebar-btn"><i class="fas fa-calendar-check w-8"></i> Attendance</button>
+            
+                <div class="admin-only">
+                    <button onclick="showPage('fin')" id="btn-fin" class="sidebar-btn"><i class="fas fa-dollar-sign w-8"></i> Finance & Payroll</button>
+                </div>
+                <button onclick="logout()" class="sidebar-btn text-red-600 mt-10"><i class="fas fa-sign-out-alt w-8"></i> Logout</button>
+            </div>
+        </nav>
+
+        <!-- Content Area -->
+        <main class="flex-1 p-6 md:p-10 bg-white">
+            
+            <!-- Dashboard Page -->
+            <section id="page-dash" class="page">
+                <h1 class="text-3xl font-bold mb-2">Welcome Back, <span id="displayRole">User</span></h1>
+                <p class="text-gray-500 mb-8">System status for <span id="currentDate"></span></p>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
+                    <div class="card bg-blue-50 border-blue-200">
+                        <p class="text-sm font-semibold text-blue-600 uppercase">Registered Students</p>
+                        <h2 class="text-4xl font-bold" id="stat-students">0</h2>
+                    </div>
+                    <div class="card bg-green-50 border-green-200">
+                        <p class="text-sm font-semibold text-green-600 uppercase">Active Staff</p>
+                        <h2 class="text-4xl font-bold" id="stat-staff">0</h2>
+                    </div>
+                    <div class="card bg-purple-50 border-purple-200 admin-only">
+                        <p class="text-sm font-semibold text-purple-600 uppercase">Monthly Revenue</p>
+                        <h2 class="text-4xl font-bold">$12,450</h2>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="font-bold mb-4">Quick Actions</h3>
+                    <div class="flex flex-wrap gap-4">
+                        <button onclick="showPage('stud')" class="w3-btn">Add Student</button>
+                        <button onclick="showPage('staf')" class="w3-btn" style="background-color: #2196F3;">Manage Staff</button>
+                        <button onclick="showPage('attn')" class="w3-btn" style="background-color: #ff9800;">Mark Attendance</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Students Page -->
+            <section id="page-stud" class="page hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold">Student Database</h2>
+                    <button onclick="toggleElement('addStudentForm')" class="w3-btn">Toggle Add Form</button>
+                </div>
+
+                <div id="addStudentForm" class="card bg-gray-50 mb-6 hidden">
+                    <h4 class="font-bold mb-3">Register New Student</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <input id="s_name" type="text" placeholder="Full Name" class="border p-2 rounded">
+                        <input id="s_id" type="text" placeholder="Student ID" class="border p-2 rounded">
+                        <input id="s_class" type="text" placeholder="Class/Grade" class="border p-2 rounded">
+                        <button onclick="addStudent()" class="w3-btn">Save Record</button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>ID</th>
+                                <th>Class</th>
+                                <th class="admin-only">Fees Paid</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentTable"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Staff Page -->
+            <section id="page-staf" class="page hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold">Staff Directory</h2>
+                    <button onclick="toggleElement('addStaffForm')" class="w3-btn" style="background-color: #2196F3;">Toggle Add Form</button>
+                </div>
+
+                <div id="addStaffForm" class="card bg-gray-50 mb-6 hidden">
+                    <h4 class="font-bold mb-3">Hire New Staff</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <input id="st_name" type="text" placeholder="Staff Name" class="border p-2 rounded">
+                        <input id="st_id" type="text" placeholder="Staff ID" class="border p-2 rounded">
+                        <input id="st_role" type="text" placeholder="Job Role" class="border p-2 rounded">
+                        <button onclick="addStaff()" class="w3-btn" style="background-color: #2196F3;">Register Staff</button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Staff Name</th>
+                                <th>Employee ID</th>
+                                <th>Designation</th>
+                                <th class="admin-only">Salary ($)</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="staffTable"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Attendance Page -->
+            <section id="page-attn" class="page hidden">
+                <h2 class="text-2xl font-bold mb-4">Daily Attendance Register</h2>
+                <div class="card bg-blue-50 mb-6">
+                    <p class="text-sm">Attendance for today is marked collectively. Green = Present, Red = Absent.</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="attendanceGrid"></div>
+            </section>
+
+            <!-- Finance Page (Admin Only) -->
+            <section id="page-fin" class="page hidden admin-only">
+                <h2 class="text-2xl font-bold mb-6">Financial Controller</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="card">
+                        <h3 class="font-bold border-b pb-2 mb-4 text-green-700">Student Fee Collection</h3>
+                        <div class="space-y-4">
+                            <input type="text" id="f_sid" placeholder="Student ID" class="w-full border p-2 rounded">
+                            <input type="number" id="f_amt" placeholder="Amount to Add" class="w-full border p-2 rounded">
+                            <button onclick="updateFees()" class="w3-btn w-full">Apply Payment</button>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3 class="font-bold border-b pb-2 mb-4 text-blue-700">Salary Disbursements</h3>
+                        <div class="space-y-4">
+                            <input type="text" id="p_id" placeholder="Staff ID" class="w-full border p-2 rounded">
+                            <input type="number" id="p_base" placeholder="Base Salary Update" class="w-full border p-2 rounded">
+                            <button onclick="updateSalary()" class="w3-btn w-full" style="background-color: #2196F3;">Update Salary Record</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Alert Box -->
+    <div id="msgBox" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full hidden shadow-2xl z-[2000]"></div>
+
+    <script>
+        // Core Data
+        let userRole = null; // 'admin' or 'staff'
+        let students = [
+            { id: '101', name: 'Arjun Kumar', class: 'Grade 8', fees: 1200 },
+  { id: '102', name: 'Meera Nair', class: 'Grade 8', fees: 1200 },
+  { id: '103', name: 'Rohit Sharma', class: 'Grade 8', fees: 1200 },
+  { id: '104', name: 'Kavya Iyer', class: 'Grade 8', fees: 1200 },
+  { id: '105', name: 'Sanjay Verma', class: 'Grade 8', fees: 1200 },
+
+  // Grade 9
+  { id: '106', name: 'Ananya Rao', class: 'Grade 9', fees: 1300 },
+  { id: '107', name: 'Vikram Singh', class: 'Grade 9', fees: 1300 },
+  { id: '108', name: 'Pooja Patel', class: 'Grade 9', fees: 1300 },
+  { id: '109', name: 'Rahul Mehta', class: 'Grade 9', fees: 1300 },
+  { id: '110', name: 'Sneha Das', class: 'Grade 9', fees: 1300 },
+
+  // Grade 10
+  { id: '111', name: 'Alice Thompson', class: 'Grade 10', fees: 1500 },
+  { id: '112', name: 'Nithin Raj', class: 'Grade 10', fees: 1500 },
+  { id: '113', name: 'Divya Mohan', class: 'Grade 10', fees: 1500 },
+  { id: '114', name: 'Karthik Reddy', class: 'Grade 10', fees: 1500 },
+  { id: '115', name: 'Lavanya S', class: 'Grade 10', fees: 1500 },
+
+  // Grade 11 – Science
+  { id: '116', name: 'Aakash Jain', class: 'Grade 11 - Science', fees: 2200 },
+  { id: '117', name: 'Priyanka Shah', class: 'Grade 11 - Science', fees: 2200 },
+  { id: '118', name: 'Mohit Agarwal', class: 'Grade 11 - Science', fees: 2200 },
+  { id: '119', name: 'Neha Kulkarni', class: 'Grade 11 - Science', fees: 2200 },
+  { id: '120', name: 'Suresh Pillai', class: 'Grade 11 - Science', fees: 2200 },
+
+  { id: '121', name: 'John Doe', class: 'Grade 12 - Science', fees: 2800 },
+  { id: '122', name: 'Ritika Malhotra', class: 'Grade 12 - Science', fees: 2800 },
+  { id: '123', name: 'Aditya Chawla', class: 'Grade 12 - Science', fees: 2800 },
+  { id: '124', name: 'Shreya Banerjee', class: 'Grade 12 - Science', fees: 2800 },
+  { id: '125', name: 'Naveen Prasad', class: 'Grade 12 - Science', fees: 2800 }
+        ];
+        let staff = [
+            { id: 'ABI001', name: 'Raman', role: 'Mathematics', salary: 4500 },
+  { id: 'ABI002', name: 'Bala', role: 'Mathematics', salary: 4600 },
+  { id: 'ABI003', name: 'Ganesh', role: 'Mathematics', salary: 4500 },
+  { id: 'ABI004', name: 'Gowtham', role: 'Mathematics', salary: 4700 },
+  { id: 'ABI005', name: 'Karthik', role: 'Mathematics', salary: 4800 },
+  { id: 'ABI006', name: 'Manoj', role: 'Mathematics', salary: 4400 },
+  { id: 'ABI007', name: 'Suresh', role: 'Mathematics', salary: 4600 },
+
+  // Science (6)
+  { id: 'ABI008', name: 'Deepa', role: 'Science', salary: 4300 },
+  { id: 'ABI009', name: 'Anitha', role: 'Science', salary: 4200 },
+  { id: 'ABI010', name: 'Prakash', role: 'Science', salary: 4400 },
+  { id: 'ABI011', name: 'Vijay', role: 'Science', salary: 4500 },
+  { id: 'ABI012', name: 'Saranya', role: 'Science', salary: 4350 },
+  { id: 'ABI013', name: 'Arun', role: 'Science', salary: 4450 },
+
+  // English (5)
+  { id: 'ABI014', name: 'Meena', role: 'English', salary: 4000 },
+  { id: 'ABI015', name: 'Priya', role: 'English', salary: 4100 },
+  { id: 'ABI016', name: 'Ravi', role: 'English', salary: 4200 },
+  { id: 'ABI017', name: 'Nisha', role: 'English', salary: 4050 },
+  { id: 'ABI018', name: 'Senthil', role: 'English', salary: 4150 },
+
+  // Computer Science (9)
+  { id: 'ABI019', name: 'Ajay', role: 'Computer Science', salary: 5200 },
+  { id: 'ABI020', name: 'Divya', role: 'Computer Science', salary: 5100 },
+  { id: 'ABI021', name: 'Harish', role: 'Computer Science', salary: 5300 },
+  { id: 'ABI022', name: 'Kavya', role: 'Computer Science', salary: 5000 },
+  { id: 'ABI023', name: 'Lokesh', role: 'Computer Science', salary: 5400 },
+  { id: 'ABI024', name: 'Monika', role: 'Computer Science', salary: 5050 },
+  { id: 'ABI025', name: 'Naveen', role: 'Computer Science', salary: 5150 },
+  { id: 'ABI026', name: 'Pooja', role: 'Computer Science', salary: 5250 },
+  { id: 'ABI027', name: 'Sathish', role: 'Computer Science', salary: 5350 },
+
+  // Administrator (8)
+  { id: 'ABI028', name: 'Raju', role: 'Administrator', salary: 3200 },
+  { id: 'ABI029', name: 'Elango', role: 'Administrator', salary: 3400 },
+  { id: 'ABI030', name: 'Chandru', role: 'Administrator', salary: 3200 },
+  { id: 'ABI031', name: 'Jeevan', role: 'Administrator', salary: 3300 },
+  { id: 'ABI032', name: 'Lakshmi', role: 'Administrator', salary: 3500 },
+  { id: 'ABI033', name: 'Muthu', role: 'Administrator', salary: 3250 },
+  { id: 'ABI034', name: 'Radha', role: 'Administrator', salary: 3450 },
+  { id: 'ABI035', name: 'Sankar', role: 'Administrator', salary: 3350 },
+
+  // Accounts (7)
+  { id: 'ABI036', name: 'Balaji', role: 'Accounts', salary: 4800 },
+  { id: 'ABI037', name: 'Revathi', role: 'Accounts', salary: 4700 },
+  { id: 'ABI038', name: 'Kumar', role: 'Accounts', salary: 4900 },
+  { id: 'ABI039', name: 'Swetha', role: 'Accounts', salary: 4650 },
+  { id: 'ABI040', name: 'Ramesh', role: 'Accounts', salary: 4750 },
+  { id: 'ABI041', name: 'Uma', role: 'Accounts', salary: 4850 },
+  { id: 'ABI042', name: 'Vinoth', role: 'Accounts', salary: 4950 },
+
+  // Physics (8)
+  { id: 'ABI043', name: 'Aravind', role: 'Physics', salary: 4600 },
+  { id: 'ABI044', name: 'Bhavani', role: 'Physics', salary: 4550 },
+  { id: 'ABI045', name: 'Charles', role: 'Physics', salary: 4700 },
+  { id: 'ABI046', name: 'Dinesh', role: 'Physics', salary: 4650 },
+  { id: 'ABI047', name: 'Ezhil', role: 'Physics', salary: 4800 },
+  { id: 'ABI048', name: 'Farah', role: 'Physics', salary: 4750 },
+  { id: 'ABI049', name: 'Giri', role: 'Physics', salary: 4850 },
+  { id: 'ABI050', name: 'Hemalatha', role: 'Physics', salary: 4900 }
+        ];
+
+        // Security
+        function attemptLogin() {
+            const pass = document.getElementById('passInput').value;
+            const error = document.getElementById('loginError');
+            
+            if (pass === "0987654321") {
+                loginSuccess('admin');
+            } else if (pass === "1234567890") {
+                loginSuccess('staff');
+            } 
+             else if (pass === "12345678") {
+                loginSuccess('student')
+             }else {
+                error.classList.remove('hidden');
+                setTimeout(() => error.classList.add('hidden'), 3000);
+            }
+        }
+
+       function loginSuccess(role) {
+    userRole = role;
+    document.body.classList.toggle('is-admin', role === 'admin');
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-interface').style.display = 'flex';
+    document.getElementById('displayRole').innerText =
+        role.charAt(0).toUpperCase() + role.slice(1);
+
+    const badge = document.getElementById('userBadge');
+    badge.innerText = role;
+    badge.className = `mt-2 inline-block px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
+        role === 'admin'
+            ? 'bg-red-100 text-red-700'
+            : 'bg-blue-100 text-blue-700'
+    }`;
+
+    initData();
+    notify(`Logged in as ${role.toUpperCase()}`);
+}
+
+        function logout() {
+            location.reload();
+        }
+
+        // Navigation
+        function showPage(id) {
+            document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+            document.getElementById('page-' + id).classList.remove('hidden');
+            
+            document.querySelectorAll('.sidebar-btn').forEach(b => b.classList.remove('active-tab'));
+            document.getElementById('btn-' + id).classList.add('active-tab');
+        }
+
+        function toggleElement(id) {
+            document.getElementById(id).classList.toggle('hidden');
+        }
+
+        // CRUD Operations
+        function addStudent() {
+            const name = document.getElementById('s_name').value;
+            const id = document.getElementById('s_id').value;
+            const cls = document.getElementById('s_class').value;
+            
+            if (!name || !id) return notify("Missing information");
+            
+            students.push({ id, name, class: cls, fees: 0 });
+            renderStudents();
+            notify("Student added successfully");
+            document.getElementById('addStudentForm').classList.add('hidden');
+        }
+
+        function addStaff() {
+            const name = document.getElementById('st_name').value;
+            const id = document.getElementById('st_id').value;
+            const role = document.getElementById('st_role').value;
+            
+            if (!name || !id) return notify("Missing information");
+            
+            staff.push({ id, name, role, salary: 2500 });
+            renderStaff();
+            notify("Staff registered");
+            document.getElementById('addStaffForm').classList.add('hidden');
+        }
+
+        function removeStudent(id) {
+            if (userRole !== 'admin') return notify("Admin permission required to remove");
+            students = students.filter(s => s.id !== id);
+            renderStudents();
+            notify("Record deleted");
+        }
+
+        function removeStaff(id) {
+            if (userRole !== 'admin') return notify("Admin permission required to remove");
+            staff = staff.filter(s => s.id !== id);
+            renderStaff();
+            notify("Record deleted");
+        }
+
+        // Financials (Admin Only)
+        function updateFees() {
+            const id = document.getElementById('f_sid').value;
+            const amt = parseInt(document.getElementById('f_amt').value);
+            const student = students.find(s => s.id === id);
+            if (student && amt) {
+                student.fees += amt;
+                notify("Fees updated for " + student.name);
+                renderStudents();
+            } else {
+                notify("Student not found");
+            }
+        }
+
+        function updateSalary() {
+            const id = document.getElementById('p_id').value;
+            const amt = parseInt(document.getElementById('p_base').value);
+            const member = staff.find(s => s.id === id);
+            if (member && amt) {
+                member.salary = amt;
+                notify("Salary updated for " + member.name);
+                renderStaff();
+            } else {
+                notify("Staff ID not found");
+            }
+        }
+
+        // Rendering
+        function renderStudents() {
+            const table = document.getElementById('studentTable');
+            table.innerHTML = students.map(s => `
+                <tr>
+                    <td class="font-bold text-blue-700">${s.name}</td>
+                    <td>${s.id}</td>
+                    <td>${s.class}</td>
+                    <td class="admin-only">$${s.fees}</td>
+                    <td>
+                        <button onclick="removeStudent('${s.id}')" class="text-red-500 hover:scale-110 transition-transform"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+            document.getElementById('stat-students').innerText = students.length;
+        }
+
+        function renderStaff() {
+            const table = document.getElementById('staffTable');
+            table.innerHTML = staff.map(s => `
+                <tr>
+                    <td class="font-bold text-green-700">${s.name}</td>
+                    <td>${s.id}</td>
+                    <td>${s.role}</td>
+                    <td class="admin-only">$${s.salary}</td>
+                    <td>
+                        <button onclick="removeStaff('${s.id}')" class="text-red-500 hover:scale-110 transition-transform"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+            document.getElementById('stat-staff').innerText = staff.length;
+        }
+
+        function renderAttendance() {
+            const grid = document.getElementById('attendanceGrid');
+            const list = [...students, ...staff];
+            grid.innerHTML = list.map(item => `
+                <div class="card bg-white flex justify-between items-center">
+                    <div>
+                        <p class="font-bold">${item.name}</p>
+                        <p class="text-xs text-gray-400">${item.id}</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="w-8 h-8 rounded border hover:bg-green-500 hover:text-white" onclick="this.style.background='#04AA6D'; this.style.color='white'">P</button>
+                     <button class="w-8 h-8 rounded border hover:bg-red-500 hover:text-white" onclick="this.style.background='#f44336'; this.style.color='white'">A</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function notify(msg) {
+            const box = document.getElementById('msgBox');
+            box.innerText = msg;
+            box.classList.remove('hidden');
+            setTimeout(() => box.classList.add('hidden'), 3000);
+        }
+
+        function initData() {
+            document.getElementById('currentDate').innerText = new Date().toDateString();
+            renderStudents();
+            renderStaff();
+            renderAttendance();
+        }
+
+
+
+        
+    </script>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-12 relative z-10">
+    <!-- Column 1: Primary Admin -->
+    <div>
+        <div class="flex items-center gap-3 mb-6">
+            <div class="h-10 w-10 bg-indigo-500 rounded-xl flex items-center justify-center text-white shadow-lg">
+                <i class="fas fa-user-shield"></i>
+            </div>
+            <h4 class="text-xl font-bold tracking-tight">System Architect</h4>
+        </div>
+        <div class="space-y-4 text-slate-400">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-user text-indigo-400 w-4"></i>
+                <p class="text-sm">Name:<span class="text-white font-semibold">Abishek R V</span></p>
+            </div>
+            <div class="flex items-center gap-3">
+                <i class="fas fa-envelope text-indigo-400 w-4"></i>
+                <p class="text-sm">Email:<span class="text-white font-semibold">abhishekvadivelrv@gmail.com</span></p>
+            </div>
+            <div class="flex items-center gap-3">
+                <i class="fas fa-phone-alt text-indigo-400 w-4"></i>
+                <p class="text-sm">Contact:<span class="text-white font-semibold">+91 9840889119</span></p>
+            </div>
+        </div>
+    </div>
+    
+
+
+    <!-- Column 3: Headquarters -->
+    <div>
+        <h4 class="text-xl font-bold mb-6">Administrative Office</h4>
+        <p class="text-slate-400 text-sm leading-relaxed mb-6">
+            1/104a, Vppenapalli<br>
+            Krishnagiri District, 635121<br>
+            Tamil Nadu.
+        </p>
+        <div class="flex gap-4">
+            <a href="https://www.linkedin.com/in/abishek-r-v-java/edit/forms/intro/new/?profileFormEntryPoint=PROFILE_SECTION" class="h-10 w-10 bg-white/5 rounded-xl flex items-center justify-center hover:bg-indigo-600 transition-all border border-white/10">
+                <i class="fab fa-linkedin-in"></i>
+            </a>
+            <a href="https://x.com/AbishekRV080320" class="h-10 w-10 bg-white/5 rounded-xl flex items-center justify-center hover:bg-indigo-600 transition-all border border-white/10">
+             <i class="fa-brands fa-x"></i>
+
+            </a>
+            <a href="abhishekvadivelrv@gmail.com" class="h-10 w-10 bg-white/5 rounded-xl flex items-center justify-center hover:bg-indigo-600 transition-all border border-white/10">
+<i class="fas fa-envelope"></i>            </a>
+        </div></div></div>
+    
+
+<div class="mt-16 pt-8 border-t border-white/5 text-center">
+    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.4em]">
+        © 2026 EduFlow Pro Enterprise | Security Level: Multi-Factor Authenticated
+    </p>
+</div>
+</body>
+</html>   
